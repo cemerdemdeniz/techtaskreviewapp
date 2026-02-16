@@ -35,12 +35,12 @@ public class ExceptionHandlingMiddleware
             ValidationException validationEx => (
                 HttpStatusCode.BadRequest,
                 validationEx.Errors.Select(e => new { code = "VALIDATION_ERROR", message = e.ErrorMessage, field = e.PropertyName })),
-            DomainException domainEx => (
-                HttpStatusCode.BadRequest,
-                new[] { new { code = "DOMAIN_ERROR", message = domainEx.Message, field = (string?)null } }.AsEnumerable()),
             InvalidSubmissionException submissionEx => (
                 HttpStatusCode.UnprocessableEntity,
                 new[] { new { code = "INVALID_SUBMISSION", message = submissionEx.Message, field = (string?)null } }.AsEnumerable()),
+            DomainException domainEx => (
+                HttpStatusCode.BadRequest,
+                new[] { new { code = "DOMAIN_ERROR", message = domainEx.Message, field = (string?)null } }.AsEnumerable()),
             KeyNotFoundException => (
                 HttpStatusCode.NotFound,
                 new[] { new { code = "NOT_FOUND", message = "Resource not found.", field = (string?)null } }.AsEnumerable()),
