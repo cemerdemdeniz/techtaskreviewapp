@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using TechTaskReview.Domain.Aggregates.Reviews;
 using TechTaskReview.Domain.Aggregates.Submissions;
 
 namespace TechTaskReview.Infrastructure.Persistence.Configurations;
