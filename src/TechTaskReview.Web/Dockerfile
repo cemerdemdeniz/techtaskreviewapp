@@ -3,6 +3,7 @@ WORKDIR /app
 EXPOSE 5000
 
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+RUN apt-get update && apt-get install -y libgit2-dev libssh2-1-dev libfontconfig1 libfreetype6 && rm -rf /var/lib/apt/lists/*
 WORKDIR /src
 COPY ["src/TechTaskReview.Domain/TechTaskReview.Domain.csproj", "TechTaskReview.Domain/"]
 COPY ["src/TechTaskReview.Application/TechTaskReview.Application.csproj", "TechTaskReview.Application/"]
