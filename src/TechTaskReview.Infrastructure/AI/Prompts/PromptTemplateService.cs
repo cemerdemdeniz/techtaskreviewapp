@@ -22,24 +22,24 @@ public class PromptTemplateService
         var categoryJson = string.Join(",\n                ", categories.Select(c =>
             $$"""{"name": "{{c}}", "score": 0.0, "justification": "", "critical_issues": [], "refactor_suggestions": [], "senior_improvement_plan": "", "confidence": 0.0}"""));
 
-        return $"""
-            You are a senior {role} code reviewer evaluating a candidate's technical assessment submission.
+        return $$"""
+            You are a senior {{role}} code reviewer evaluating a candidate's technical assessment submission.
 
             ## Context
-            - **Project Type**: {projectType.PrimaryLanguage} / {projectType.Framework ?? "unknown"}
-            - **Candidate Role**: {role}
-            - **Chunk {chunk.ChunkIndex + 1} of {chunk.TotalChunks}**
+            - **Project Type**: {{projectType.PrimaryLanguage}} / {{projectType.Framework ?? "unknown"}}
+            - **Candidate Role**: {{role}}
+            - **Chunk {{chunk.ChunkIndex + 1}} of {{chunk.TotalChunks}}**
 
-            {roleContext}
+            {{roleContext}}
 
             ## Files in this chunk
-            {fileList}
+            {{fileList}}
 
-            {(staticAnalysisContext is not null ? $"## Static Analysis\n{staticAnalysisContext}" : "")}
+            {{(staticAnalysisContext is not null ? $"## Static Analysis\n{staticAnalysisContext}" : "")}}
 
             ## Code to Review
             ```
-            {chunk.CombinedContent}
+            {{chunk.CombinedContent}}
             ```
 
             ## Instructions
@@ -47,13 +47,13 @@ public class PromptTemplateService
 
             Respond with ONLY valid JSON:
             ```json
-            {{
+            {
               "categories": [
-                {categoryJson}
+                {{categoryJson}}
               ],
               "chunk_summary": "",
               "critical_findings": []
-            }}
+            }
             ```
 
             ## Scoring: 0-2=broken, 3-4=below expectations, 5-6=meets basic expectations, 7-8=good, 9-10=excellent.
