@@ -1,0 +1,151 @@
+version: '3.8'
+
+services:
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - api
+    networks:
+      - techtask-net
+
+  api:
+    build:
+      context: .
+      dockerfile: src/TechTaskReview.Web/Dockerfile
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ConnectionStrings__DefaultConnection=Host=postgres;Database=techtask;Username=app;Password=${DB_PASSWORD:-devpassword123}
+      - ConnectionStrings__Redis=redis:6379
+      - Jwt__SecretKey=${JWT_SECRET_KEY:-super-secret-dev-key-min-32-chars-long-for-hmac!!}
+      - Jwt__Issuer=techtaskreview
+      - Jwt__Audience=techtaskreview-api
+      - FileStorage__Endpoint=minio:9000
+      - FileStorage__AccessKey=${MINIO_ACCESS_KEY:-minioadmin}
+      - FileStorage__SecretKey=${MINIO_SECRET_KEY:-minioadmin}
+      - AI__OllamaBaseUrl=http://ollama:11434
+      - AI__DefaultProvider=Ollama
+      - Malware__ClamAvUrl=http://clamav:3310
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_started
+    networks:
+      - techtask-net
+    restart: unless-stopped
+
+  worker:
+    build:
+      context: .
+      dockerfile: src/TechTaskReview.Web/Dockerfile
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ConnectionStrings__DefaultConnection=Host=postgres;Database=techtask;Username=app;Password=${DB_PASSWORD:-devpassword123}
+      - ConnectionStrings__Redis=redis:6379
+      - FileStorage__Endpoint=minio:9000
+      - FileStorage__AccessKey=${MINIO_ACCESS_KEY:-minioadmin}
+      - FileStorage__SecretKey=${MINIO_SECRET_KEY:-minioadmin}
+      - AI__OllamaBaseUrl=http://ollama:11434
+      - AI__DefaultProvider=Ollama
+      - Malware__ClamAvUrl=http://clamav:3310
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      ollama:
+        condition: service_started
+      clamav:
+        condition: service_started
+    networks:
+      - techtask-net
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: techtask
+      POSTGRES_USER: app
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-devpassword123}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U app -d techtask"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - techtask-net
+
+  redis:
+    image: redis:7-alpine
+    command: redis-server --appendonly yes
+    volumes:
+      - redisdata:/data
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - techtask-net
+
+  minio:
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ACCESS_KEY:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY:-minioadmin}
+    volumes:
+      - miniodata:/data
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    networks:
+      - techtask-net
+
+  ollama:
+    image: ollama/ollama:latest
+    volumes:
+      - ollamamodels:/root/.ollama
+    ports:
+      - "11434:11434"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    networks:
+      - techtask-net
+
+  clamav:
+    image: clamav/clamav:latest
+    volumes:
+      - clamavdb:/var/lib/clamav
+    ports:
+      - "3310:3310"
+    networks:
+      - techtask-net
+
+volumes:
+  pgdata:
+  redisdata:
+  miniodata:
+  ollamamodels:
+  clamavdb:
+
+networks:
+  techtask-net:
+    driver: bridge
