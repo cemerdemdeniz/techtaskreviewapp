@@ -43,6 +43,17 @@ public class ScoringConfig : AggregateRoot
         });
     }
 
+    public void UpdateWeights(string name, List<(ScoreCategory Category, decimal Weight, decimal? MinimumPassingScore)> weights)
+    {
+        Name = name;
+        _weights.Clear();
+        foreach (var (category, weight, minimumPassingScore) in weights)
+        {
+            AddWeight(category, weight, minimumPassingScore);
+        }
+        Version++;
+    }
+
     public void SetAsDefault()
     {
         IsDefault = true;
